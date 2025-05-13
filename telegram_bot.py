@@ -198,9 +198,8 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler('cancel', cancel)],
 )
 
-app = ApplicationBuilder().token("BOT_TOKEN").build()
+app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
 app.add_handler(CommandHandler('start', start))
-# app.add_handler(CommandHandler('add', add_task))
 app.add_handler(CommandHandler('show', show_list))
 app.add_handler(CommandHandler('done', mark_done))
 app.add_handler(CommandHandler('remove', remove_task))
