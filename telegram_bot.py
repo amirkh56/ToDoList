@@ -1,6 +1,10 @@
 # --------------------- ایمپورت ها ------------------------------
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (Update,
+                      InlineKeyboardButton,
+                      InlineKeyboardMarkup,
+                      InputFile)
+
 from telegram.ext import (CommandHandler,
                           ApplicationBuilder,
                           ContextTypes,
@@ -62,6 +66,17 @@ async def handle_buttom(update: Update, context: ContextTypes.DEFAULT_TYPE) :
             removed = user_tasks.pop(index)
             save_tasks()
             await query.edit_message_text(f"کار '{removed}' حذف شد. ")
+
+
+# 
+
+async def backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'rb') as f:
+            await update.message.reply_document(InputFile(f, filename='todo_data.json'))
+    else:
+        await update.message.reply_text("فایل دیتابیس پیدا نشد.")
 
 # -------------------------- شروع ---------------------------
 
@@ -199,6 +214,7 @@ conv_handler = ConversationHandler(
 )
 
 app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+app.add_handler(CommandHandler('backup', backup))
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('show', show_list))
 app.add_handler(CommandHandler('done', mark_done))
