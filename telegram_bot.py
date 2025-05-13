@@ -18,6 +18,7 @@ import os
 
 # --------------------- متغیر ها ------------------------------
 
+ADMIN_ID = 1402912123
 ADDING_TASK = 1
 todo_data = {}
 DATA_FILE = "todo_data.json"
@@ -68,10 +69,23 @@ async def handle_buttom(update: Update, context: ContextTypes.DEFAULT_TYPE) :
             await query.edit_message_text(f"کار '{removed}' حذف شد. ")
 
 
-# 
+# -------------------------- Back Up & Admin ----------------------------------
 
 async def backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'rb') as f:
+            await update.message.reply_document(InputFile(f, filename='todo_data.json'))
+    else:
+        await update.message.reply_text("فایل دیتابیس پیدا نشد.")
+
+
+async def admin_backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("شما اجازه دسترسی به این بخش را ندارید.")
+        return
+
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, 'rb') as f:
             await update.message.reply_document(InputFile(f, filename='todo_data.json'))
