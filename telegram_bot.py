@@ -22,8 +22,19 @@ ADMIN_ID = 1402912123
 ADDING_TASK = 1
 todo_data = {}
 DATA_FILE = "todo_data.json"
+user_ids = set()
 
 # ----------------- ذخیره و بارگیری ----------------------------
+
+def save_user_ids():
+    with open('user_ids.json', 'w') as f:
+        json.dump(list(user_ids), f)
+
+def load_user_ids():
+    global user_ids
+    if os.path.exists('user_ids.json'):
+        with open('user_ids.json', 'r') as f:
+            user_ids = set(json.load(f))
 
 def save_tasks () :
     with open(DATA_FILE, 'w', encoding = 'utf-8') as f :
@@ -91,10 +102,42 @@ async def admin_backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_document(InputFile(f, filename='todo_data.json'))
     else:
         await update.message.reply_text("فایل دیتابیس پیدا نشد.")
+    
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("شما اجازه این کار را ندارید.")
+        return
+
+    if not context.args:
+         await update.message.reply_text("لطفا متنی برای ارسال وارد کن.")
+         return
+
+    message = ' '.join(context.args)
+    success = 0
+    failed = 0
+
+    for uid in user_ids:
+        try:
+            await context.bot.send_message(chat_id=uid, text=message)
+            success += 1
+        except Exception as e:
+            failed += 1
+
+    await update.message.reply_text(f"📢 پیام ارسال شد.\n✅ موفق: {success}\n❌ ناموفق: {failed}")
 
 # -------------------------- شروع ---------------------------
 
 async def start (update: Update, context: ContextTypes.DEFAULT_TYPE) :
+
+    user_id = str(update.effective_user.id)
+    if user_id not in todo_data:
+         todo_data[user_id] = []
+         save_tasks()
+    
+    user_ids.add(user_id)
+    save_user_ids()
+
     await update.message.reply_text("""
                                     
                                     سلام کاربر عزیز
@@ -236,6 +279,7 @@ app.add_handler(CommandHandler('remove', remove_task))
 app.add_handler(CommandHandler('help', help))
 app.add_handler(CallbackQueryHandler(handle_buttom))
 app.add_handler(CommandHandler('admin_backup', admin_backup))
+app.add_handler(CommandHandler("broadcast", broadcast))
 app.add_handler(conv_handler)
 
 load_tasks()
