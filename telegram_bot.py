@@ -65,19 +65,34 @@ async def handle_buttom(update: Update, context: ContextTypes.DEFAULT_TYPE) :
     await query.answer()
     data = query.data
 
-    if data.startswith ("done_") :
-        index = int(data.split("_")[1])
-        if 0 <= index < len(user_tasks) :
-            user_tasks[index] = f"✅ {user_tasks[index]}"
-            save_tasks()
-            await query.edit_message_text(f"{index+1}, {user_tasks[index]}")
+    # ابتدا بررسی می‌کنیم که آیا حالت multi هست یا خیر
+    if data == "mark_done_multi":
+        await context.bot.send_message(chat_id=user_id, text="شماره‌های کارهایی که می‌خوای علامت بزنی رو با `|` جدا کن (مثلاً: 1 | 3 | 5)")
+        context.user_data['action'] = 'mark_done_multi'
     
-    elif data.startswith("remove_") :
-        index = int(data.split("_")[1])
-        if 0 <= index < len(user_tasks) :
-            removed = user_tasks.pop(index)
-            save_tasks()
-            await query.edit_message_text(f"کار '{removed}' حذف شد. ")
+    elif data == "remove_multi":
+        await context.bot.send_message(chat_id=user_id, text="شماره‌های کارهایی که می‌خوای حذف کنی رو با `|` جدا کن (مثلاً: 2 | 4)")
+        context.user_data['action'] = 'remove_multi'
+
+    elif data.startswith("done_"):
+        try:
+            index = int(data.split("_")[1])
+            if 0 <= index < len(user_tasks):
+                user_tasks[index] = f"✅ {user_tasks[index]}"
+                save_tasks()
+                await query.edit_message_text(f"{index+1}, {user_tasks[index]}")
+        except ValueError:
+            await query.edit_message_text("شماره نامعتبر بود.")
+
+    elif data.startswith("remove_"):
+        try:
+            index = int(data.split("_")[1])
+            if 0 <= index < len(user_tasks):
+                removed = user_tasks.pop(index)
+                save_tasks()
+                await query.edit_message_text(f"کار '{removed}' حذف شد. ")
+        except ValueError:
+            await query.edit_message_text("شماره نامعتبر بود.")
 
 
 # -------------------------- Back Up & Admin ----------------------------------
@@ -185,21 +200,27 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) :
 
 # -------------------------- نشان دادن --------------------------------
 
-async def show_list (update:Update, context: ContextTypes.DEFAULT_TYPE) :
+async def show_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update._effective_user.id
     user_tasks = get_user_tasks(user_id)
 
-    if not user_tasks :
-        await update.message.reply_text("کاری برای انجام دادن نیست. ")
+    if not user_tasks:
+        await update.message.reply_text("هیچ کاری برای نمایش وجود ندارد.")
         return
-    for i, task in enumerate(user_tasks):
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("انجام شد ✅ ", callback_data=f"done_{i}"),
-                InlineKeyboardButton("حذف شد ❌", callback_data=f"remove_{i}"),
-            ]
-        ])
-        await update.message.reply_text(f"{i+1}. {task}", reply_markup=keyboard)
+
+    # نمایش لیست در یک پیام
+    task_list_text = "\n".join([f"{i + 1}. {task}" for i, task in enumerate(user_tasks)])
+
+    # دکمه‌ها برای عملیات
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ علامت‌زدن انجام شده", callback_data="mark_done_multi")],
+        [InlineKeyboardButton("🗑️ حذف کارها", callback_data="remove_multi")]
+    ])
+
+    await update.message.reply_text(
+        f"📝 لیست کارهای شما:\n\n{task_list_text}",
+        reply_markup=keyboard
+    )
 
 # ------------------ علامت زدن به عنوان انجام شده ------------------------
 
@@ -263,6 +284,39 @@ async def help (update:Update, context:ContextTypes.DEFAULT_TYPE) :
                                     ----------------------------------------------
 """)
 
+# -------------------------------------------------------------------------------
+
+async def handle_multi_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user_tasks = get_user_tasks(user_id)
+    action = context.user_data.get('action')
+    text = update.message.text
+    numbers = [int(num.strip()) - 1 for num in text.split('|') if num.strip().isdigit()]
+
+    if not numbers:
+        await update.message.reply_text("شماره‌ها معتبر نیستند.")
+        return
+
+    done_count = 0
+    removed_count = 0
+
+    if action == 'mark_done_multi':
+        for i in numbers:
+            if 0 <= i < len(user_tasks) and not user_tasks[i].startswith("✅"):
+                user_tasks[i] = f"✅ {user_tasks[i]}"
+                done_count += 1
+        await update.message.reply_text(f"{done_count} کار علامت زده شد.")
+    
+    elif action == 'remove_multi':
+        for i in sorted(numbers, reverse=True):
+            if 0 <= i < len(user_tasks):
+                user_tasks.pop(i)
+                removed_count += 1
+        await update.message.reply_text(f"{removed_count} کار حذف شد.")
+
+    save_tasks()
+    context.user_data.pop('action', None)  # ✅ این خط مهمه
+
 # -------------------------هندلر ها ----------------------------------------
 
 conv_handler = ConversationHandler(
@@ -273,17 +327,19 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler('cancel', cancel)],
 )
 
-app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+# app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+app = ApplicationBuilder().token("7749405805:AAHX7uM8DEb69SrRFM2G2TMkjUWEya9qsXM").build()
 app.add_handler(CommandHandler('backup', backup))
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('show', show_list))
+app.add_handler(conv_handler)
 app.add_handler(CommandHandler('done', mark_done))
 app.add_handler(CommandHandler('remove', remove_task))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_multi_action))
 app.add_handler(CommandHandler('help', help))
 app.add_handler(CallbackQueryHandler(handle_buttom))
 app.add_handler(CommandHandler('admin_backup', admin_backup))
 app.add_handler(CommandHandler("broadcast", broadcast))
-app.add_handler(conv_handler)
 
 load_tasks()
 app.run_polling()
