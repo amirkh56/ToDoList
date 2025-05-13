@@ -102,6 +102,9 @@ async def admin_backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_document(InputFile(f, filename='todo_data.json'))
     else:
         await update.message.reply_text("فایل دیتابیس پیدا نشد.")
+
+
+# --------------------------- اطلاع رسانی ---------------------------------
     
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
