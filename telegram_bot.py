@@ -235,6 +235,7 @@ app.add_handler(CommandHandler('done', mark_done))
 app.add_handler(CommandHandler('remove', remove_task))
 app.add_handler(CommandHandler('help', help))
 app.add_handler(CallbackQueryHandler(handle_buttom))
+app.add_handler(CommandHandler('admin_backup', admin_backup))
 app.add_handler(conv_handler)
 
 load_tasks()
