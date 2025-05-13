@@ -329,17 +329,19 @@ conv_handler = ConversationHandler(
 
 # app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
 app = ApplicationBuilder().token("7749405805:AAHX7uM8DEb69SrRFM2G2TMkjUWEya9qsXM").build()
+
+
+app.add_handler(conv_handler)
 app.add_handler(CommandHandler('backup', backup))
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('show', show_list))
-app.add_handler(conv_handler)
 app.add_handler(CommandHandler('done', mark_done))
 app.add_handler(CommandHandler('remove', remove_task))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_multi_action))
 app.add_handler(CommandHandler('help', help))
 app.add_handler(CallbackQueryHandler(handle_buttom))
 app.add_handler(CommandHandler('admin_backup', admin_backup))
 app.add_handler(CommandHandler("broadcast", broadcast))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_multi_action))
 
 load_tasks()
 app.run_polling()
