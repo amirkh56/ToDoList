@@ -243,7 +243,7 @@ async def mark_done(update: Update, context:ContextTypes.DEFAULT_TYPE) :
         return
     
     completed_task = user_tasks[task_num]
-    user_tasks[task_num] = f"✅ {completed_task}"
+    user_tasks[task_num] = f"{completed_task}. ✅"
     save_tasks()
     await update.message.reply_text(f"تسک {task_num + 1} به عنوان انجام شده علامت گذاری شد. ")
 
