@@ -15,14 +15,18 @@ from telegram.ext import (CommandHandler,
 
 import json
 import os
+import logging
+
 
 # --------------------- متغیر ها ------------------------------
-
-ADMIN_ID = 1402912123
-ADDING_TASK = 1
 todo_data = {}
 DATA_FILE = "todo_data.json"
 user_ids = set()
+ADMIN_ID = 1402912123
+ADDING_TASK = 1
+PORT = int(os.environ.get('PORT', 8443))
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
 
 # ----------------- ذخیره و بارگیری ----------------------------
 
@@ -327,8 +331,8 @@ conv_handler = ConversationHandler(
     fallbacks=[CommandHandler('cancel', cancel)],
 )
 
-# app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
-app = ApplicationBuilder().token("7749405805:AAHX7uM8DEb69SrRFM2G2TMkjUWEya9qsXM").build()
+app = ApplicationBuilder().token(os.getenv("BOT_TOKEN")).build()
+# app = ApplicationBuilder().token("7749405805:AAHX7uM8DEb69SrRFM2G2TMkjUWEya9qsXM").build()
 
 
 app.add_handler(conv_handler)
@@ -344,4 +348,8 @@ app.add_handler(CommandHandler("broadcast", broadcast))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_multi_action))
 
 load_tasks()
-app.run_polling()
+app.run_webhook(
+    listen="0.0.0.0",
+    port= PORT,
+    webhook_url= f"{WEBHOOK_URL}/webhook"
+)
