@@ -1,2 +1,2 @@
-pip install python-telegram-bot
-pip install python-telegram-bot[webhook]
+python-telegram-bot
+python-telegram-bot[webhook]
