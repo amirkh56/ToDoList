@@ -1,2 +1,2 @@
-python-telegram-bot==22.0
-python-telegram-bot[webhooks]
+pip install python-telegram-bot
+pip install python-telegram-bot[webhook]
